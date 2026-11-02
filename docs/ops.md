@@ -123,6 +123,10 @@ Sao lưu ngay: `dcp run --rm backup backup.sh`
 Xem các bản đang có: `dcp run --rm backup ls -lh /backups/db`
 Xem lịch và lỗi: `dcp logs backup`
 
+**Biết sao lưu có đang chạy không:** `dcp ps backup`. Cột trạng thái ghi `unhealthy`
+nghĩa là đã hơn 26 giờ không có bản sao lưu thành công: xem `dcp logs backup` ngay.
+Khi container khởi động mà chưa có bản nào trong 26 giờ, nó sao lưu luôn, không đợi 03:00.
+
 ## 7. Khôi phục
 
 **Ghi đè dữ liệu hiện tại.** Nên sao lưu ngay trước khi khôi phục.
@@ -151,5 +155,6 @@ dcp exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c 'drop database restore
 | `/api/health` trả `"db":false` | `dcp ps db`, `dcp logs db` |
 | `/api/health` trả `"storage":false` | `dcp ps minio`, `dcp logs minio` |
 | App không lên sau cập nhật | `dcp logs migrate`: migration lỗi thì app không khởi động |
+| `dcp ps backup` ghi `unhealthy` | Sao lưu hỏng hơn 26 giờ: `dcp logs backup` (thường do đầy đĩa hoặc đổi mật khẩu) |
 | HTTPS lỗi | DNS đã trỏ đúng IP chưa; `dcp logs caddy` |
 | Hết dung lượng đĩa | `docker system df` xem chỗ nào chiếm; `docker image prune` xoá image cũ; giảm `BACKUP_KEEP_DAYS` |

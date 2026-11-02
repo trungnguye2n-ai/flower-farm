@@ -24,4 +24,5 @@ if [[ -n "${BACKUP_REMOTE_HOST:-}" && -n "${BACKUP_REMOTE_PATH:-}" ]]; then
   MC_HOST_remote="${BACKUP_REMOTE_HOST}" mc mirror --overwrite --quiet /backups "remote/${BACKUP_REMOTE_PATH}"
   echo "offsite: pushed to remote/${BACKUP_REMOTE_PATH}"
 fi
+touch /backups/.last-success
 echo "backup done ${stamp}"
