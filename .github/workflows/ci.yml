@@ -27,6 +27,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: infra/tests/app-env.sh
       - run: npm run build
 
   publish:
