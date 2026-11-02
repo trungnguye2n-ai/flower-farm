@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Vườn Lan | Lan hồ điệp từ nhà vườn</title>
+<meta name="description" content="Nhà vườn lan hồ điệp. Sáu giống đang nở, chăm bằng tay, giao nội thành trong ngày." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="assets/order-demo.css" />
+<script src="assets/order-demo.js" defer></script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,300..800&display=swap" rel="stylesheet" />
+
+<style>
+  /* Màu sân khấu (--stage/--ink/--deep) do JS nội suy liên tục theo bông hoa đang xem */
+  :root {
+    --stage: #1E3644;
+    --ink:   #EAF1F4;
+    --deep:  #1E3644;
+
+    --paper: #F5F6F7;
+    --text:  #1B1B1F;
+    --muted: #5D5E66;
+    --line:  #DCDDE2;
+
+    --font: "Bricolage Grotesque", system-ui, sans-serif;
+    --maxw: 1200px;
+    --pad: clamp(16px, 4vw, 40px);
+    --nav-h: 60px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #121214;
+      --text:  #ECECEF;
+      --muted: #9C9DA6;
+      --line:  #2A2A30;
+    }
+  }
+
+  /* Reset không chạm vào các mini demo (stageshow tự quản kích thước) */
+  *:not(.ss-fit, .ss-fit *) { box-sizing: border-box; margin: 0; padding: 0; }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+  body {
+    background: var(--paper);
+    color: var(--text);
+    font-family: var(--font);
+    font-optical-sizing: auto;
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  img { display: block; max-width: 100%; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; border-radius: 6px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .shell { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--pad); }
+
+  /* Một kiểu phản hồi cho mọi nút: thu nhẹ ngay khi chạm (không đợi thả tay),
+     nhả ra thì bật về mềm. Rê chuột chỉ đậm thêm một bậc của chính màu nút. */
+  .press, .btn {
+    transition: transform 240ms cubic-bezier(0.3, 1.4, 0.5, 1), background-color 160ms ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .press:active, .btn:active { transform: scale(0.96); transition-duration: 70ms, 160ms; }
+
+  .btn {
+    --btn-bg: var(--deep);
+    --btn-ink: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 48px;
+    padding: 0 24px;
+    border: 0;
+    border-radius: 999px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    background: var(--btn-bg);
+    color: var(--btn-ink);
+  }
+  /* Nền tối thì sâu thêm, nền sáng (màu --ink) thì tối đi một chút: vẫn là màu của nút */
+  @media (hover: hover) {
+    .btn:hover { background: color-mix(in srgb, var(--btn-bg) 86%, #000); }
+  }
+
+  /* ---------- Nav: lớp kính mờ mang màu bông hoa đang xem ---------- */
+  /* ---------- Liquid glass ----------
+     Lớp kính: tint mỏng + blur nhẹ + viền bắt sáng. Trên Chromium, JS gắn thêm
+     bộ lọc SVG khúc xạ mép kính (backdrop-filter: url(#…)). */
+  .glass {
+    position: relative;
+    isolation: isolate;
+    background: var(--glass-tint, rgba(255, 255, 255, 0.12));
+    -webkit-backdrop-filter: blur(var(--glass-blur, 10px)) saturate(180%);
+    backdrop-filter: blur(var(--glass-blur, 10px)) saturate(180%);
+    box-shadow:
+      inset 0 1px 0.5px rgba(255, 255, 255, 0.6),
+      inset 0 -1px 1px rgba(255, 255, 255, 0.14),
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.28),
+      0 12px 32px -12px rgba(0, 0, 0, 0.4);
+  }
+  /* Vệt sáng đi theo con trỏ, như ánh đèn lướt trên mặt kính */
+  .glass::before {
+    content: "";
+    position: absolute; inset: 0; z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: radial-gradient(130% 100% at var(--mx, 28%) var(--my, -30%), rgba(255, 255, 255, 0.3), transparent 58%);
+  }
+
+  .nav {
+    position: fixed; top: 10px; left: 0; right: 0; z-index: 50;
+    width: min(calc(100% - 20px), 820px);
+    height: var(--nav-h);
+    margin: 0 auto;
+    border-radius: 999px;
+    color: var(--ink);
+    --glass-tint: color-mix(in srgb, var(--stage) 28%, transparent);
+  }
+  /* Trên nền chữ dày đặc: kính đục hơn để chữ trên thanh vẫn đọc được */
+  .nav.on-paper { color: var(--text); --glass-tint: color-mix(in srgb, var(--paper) 84%, transparent); }
+  .nav .shell { height: 100%; padding: 0 8px 0 22px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+  .brand { font-weight: 700; font-size: 1.2rem; letter-spacing: -0.01em; text-decoration: none; }
+  .nav-links { display: flex; align-items: center; gap: 26px; font-size: 0.95rem; font-weight: 500; }
+  .nav-links a { text-decoration: none; opacity: 0.8; }
+  .nav-links a:hover { opacity: 1; }
+  .nav .btn { min-height: 42px; padding: 0 18px; --btn-bg: var(--ink); --btn-ink: var(--stage); font-size: 0.95rem; }
+  .nav.on-paper .btn { --btn-bg: var(--deep); --btn-ink: #fff; }
+  @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+    .glass { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+    .glass::before { display: none; }
+    .nav { background: var(--stage); }
+    .nav.on-paper { background: var(--paper); box-shadow: 0 0 0 1px var(--line); }
+    .pill { background: var(--stage); }
+    .sheet { background: var(--paper) !important; }
+    .toast { background: var(--text) !important; color: var(--paper) !important; }
+  }
+
+  /* ---------- Sân khấu: một bông hoa, kéo để đổi giống ---------- */
+  .stage {
+    background: var(--stage);
+    color: var(--ink);
+    padding-top: calc(var(--nav-h) + 20px);
+  }
+  .stage .shell {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: 0 24px;
+    min-height: min(100svh, 940px);
+  }
+  .info { padding: 40px 0 56px; }
+  .v-name {
+    font-size: clamp(3rem, 7.4vw, 6.6rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    text-wrap: balance;
+  }
+  .v-latin { margin-top: 14px; font-size: 1.05rem; opacity: 0.75; }
+  .v-note { margin-top: 18px; font-size: 1.2rem; max-width: 28ch; }
+  .v-row { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 22px; margin-top: 28px; }
+  .v-price { font-size: 1.6rem; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .stage .btn { --btn-bg: var(--ink); --btn-ink: var(--stage); }
+  .swap { animation: swap 260ms ease-out; }
+  @keyframes swap { from { opacity: 0.15; } to { opacity: 1; } }
+
+  .viewer-wrap { position: relative; }
+  .pill {
+    position: absolute; left: 50%; bottom: 22px; z-index: 20;
+    transform: translateX(-50%);
+    display: flex; gap: 0;
+    padding: 4px;
+    border-radius: 999px;
+    --glass-tint: color-mix(in srgb, var(--stage) 14%, transparent);
+    --glass-blur: 6px;
+  }
+  .sw {
+    width: 44px; height: 44px;
+    display: grid; place-items: center;
+    background: none; border: 0; cursor: pointer;
+    border-radius: 50%;
+  }
+  .sw i {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--c);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+    transition: transform 160ms ease-out;
+  }
+  .sw[aria-pressed="true"] i { outline: 2px solid var(--ink); outline-offset: 3px; transform: scale(1.08); }
+  .hint { margin-top: 30px; font-size: 0.92rem; opacity: 0.7; }
+
+  .viewer {
+    position: relative;
+    height: clamp(380px, 74svh, 720px);
+    overflow: hidden;
+    touch-action: pan-y;               /* dọc = cuộn trang, ngang = kéo hoa */
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: grab;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 16%, #000 84%, transparent);
+  }
+  .viewer.dragging { cursor: grabbing; }
+  .viewer:focus-visible { outline: 2px solid var(--ink); outline-offset: -6px; }
+  .slide {
+    position: absolute; left: 50%; top: 50%;
+    will-change: transform, opacity;
+  }
+  .slide svg { width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 28px 36px rgba(0, 0, 0, 0.28)); }
+
+  /* ---------- Lời hứa ---------- */
+  .promise { padding: clamp(80px, 12vw, 150px) 0 clamp(56px, 8vw, 96px); }
+  .promise p {
+    font-size: clamp(1.7rem, 3.4vw, 2.75rem);
+    font-weight: 500;
+    letter-spacing: -0.022em;
+    line-height: 1.18;
+    max-width: 28ch;
+  }
+  .promise p span { color: var(--muted); }
+  .promise .shell { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 48px 64px; align-items: center; }
+
+  /* ---------- Chăm sóc ---------- */
+  .care { padding: clamp(40px, 6vw, 72px) 0 clamp(80px, 11vw, 140px); }
+  .care .shell { display: grid; grid-template-columns: minmax(340px, 1fr) minmax(0, 1.5fr); gap: 32px 64px; }
+  .care-flow { margin-top: 40px; }
+  h2.title { font-size: clamp(2.1rem, 4.4vw, 3.4rem); font-weight: 700; letter-spacing: -0.03em; line-height: 1.02; text-wrap: balance; }
+  .care .sub { color: var(--muted); margin-top: 14px; max-width: 30ch; }
+  .care dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 34px 40px; }
+  .care dt { font-weight: 650; font-size: 1.2rem; letter-spacing: -0.01em; padding-top: 14px; border-top: 1px solid var(--line); }
+  .care dd { color: var(--muted); margin-top: 6px; max-width: 36ch; }
+
+  /* ---------- Chuyện của vườn ---------- */
+  .story .shell { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px 56px; align-items: end; }
+  .story img { width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 22px; }
+  .story p { color: var(--muted); margin-top: 16px; max-width: 40ch; }
+  .count { margin-top: 34px; font-size: clamp(3rem, 6vw, 4.4rem); font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .count span { display: block; margin-top: 8px; font-size: 1rem; font-weight: 400; letter-spacing: 0; color: var(--muted); }
+
+  /* ---------- Đặt hoa ---------- */
+  .order { padding: clamp(96px, 13vw, 160px) 0 clamp(56px, 8vw, 96px); }
+  .order .shell { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 40px 64px; align-items: start; }
+  .order .btn { margin-top: 30px; }
+  .contact { display: grid; gap: 14px; margin-top: 56px; }
+  /* Mini demo: đơn đi vào Zalo, vườn xác nhận */
+  .flow { margin: 0; }
+  .flow-demo { width: 100%; max-width: 400px; }
+  .flow figcaption { margin-top: 14px; max-width: 34ch; color: var(--muted); font-size: 0.95rem; }
+  .contact div { display: grid; grid-template-columns: 8.5em minmax(0, 1fr); gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+  .contact dt { color: var(--muted); }
+  .contact a { font-weight: 600; text-decoration-color: var(--deep); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+
+  .footer { padding: 28px 0 40px; color: var(--muted); font-size: 0.9rem; }
+  .footer .shell { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; }
+
+  /* ---------- Tấm đặt hoa (bottom sheet) ---------- */
+  .scrim {
+    position: fixed; inset: 0; z-index: 80;
+    background: rgba(8, 8, 12, 0.28);
+    opacity: 0;
+  }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 90;
+    margin: 0 auto;
+    width: calc(100% - 16px);
+    max-width: 560px;
+    max-height: calc(100svh - 24px);
+    bottom: 8px;
+    display: flex; flex-direction: column;
+    color: var(--text);
+    border-radius: 32px;
+    --glass-tint: color-mix(in srgb, var(--paper) 80%, transparent);
+    --glass-blur: 28px;
+    transform: translate3d(0, 110%, 0);
+    will-change: transform;
+  }
+  .sheet-head {
+    flex: none;
+    padding: 10px 20px 6px;
+    touch-action: none;                /* đầu tấm nhận toàn bộ cử chỉ kéo */
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .grip { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 12px; }
+  .sheet-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .sheet-top h2 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
+  .close { background: none; border: 0; padding: 10px 4px; color: var(--muted); font-weight: 600; cursor: pointer; }
+  .sheet-body {
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 8px 20px calc(24px + env(safe-area-inset-bottom));
+  }
+  fieldset { border: 0; }
+  legend, .field label { font-weight: 600; font-size: 0.92rem; margin-bottom: 8px; display: block; }
+  .chips { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; position: relative; }
+  /* Khung chọn là một vật duy nhất trượt từ ô cũ sang ô mới, không nhảy viền */
+  .chip-ring {
+    position: absolute; left: 0; top: 0; z-index: 1;
+    border: 2.5px solid var(--deep);
+    border-radius: 14px;
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      transform 420ms cubic-bezier(0.3, 1.25, 0.4, 1),
+      width 420ms cubic-bezier(0.3, 1.25, 0.4, 1),
+      height 420ms cubic-bezier(0.3, 1.25, 0.4, 1),
+      opacity 160ms ease;
+  }
+  .chip-ring.on { opacity: 1; }
+  .chip-ring.instant { transition: none; }
+  @media (prefers-color-scheme: dark) { .chip-ring { border-color: var(--text); } }
+  .chip { position: relative; }
+  .chip input { position: absolute; opacity: 0; inset: 0; }
+  .chip span {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 10px 10px 10px 38px;
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    font-size: 0.9rem; line-height: 1.25;
+    cursor: pointer;
+    position: relative;
+  }
+  .chip span::before {
+    content: ""; position: absolute; left: 11px; top: 12px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--c); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  }
+  .chip small { color: var(--muted); font-size: 0.8rem; }
+  .chip span { transition: background-color 160ms ease, transform 240ms cubic-bezier(0.3, 1.4, 0.5, 1); }
+  .chip input:active + span { transform: scale(0.97); transition-duration: 70ms; }
+  @media (hover: hover) { .chip input:not(:checked):hover + span { background: color-mix(in srgb, var(--line) 35%, transparent); } }
+  .chip input:focus-visible + span { outline: 2px solid var(--deep); outline-offset: 3px; }
+  /* Khi JS chưa chạy, viền tĩnh vẫn đánh dấu ô đang chọn */
+  .chips:not(.has-ring) .chip input:checked + span { border-color: var(--deep); box-shadow: inset 0 0 0 1px var(--deep); }
+  .field { margin-top: 18px; }
+  .field input, .field textarea {
+    width: 100%;
+    font: inherit; color: var(--text);
+    background: transparent;
+    border: 1.5px solid var(--line);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .field input:focus, .field textarea:focus { outline: none; border-color: var(--deep); }
+  @media (prefers-color-scheme: dark) { .field input:focus, .field textarea:focus { border-color: var(--text); } }
+  .field textarea { min-height: 88px; resize: vertical; }
+  .sheet .btn { width: 100%; margin-top: 22px; }
+  .form-note { color: var(--muted); font-size: 0.85rem; margin-top: 10px; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; z-index: 100;
+    max-width: calc(100% - 32px);
+    transform: translate(-50%, 12px);
+    opacity: 0; pointer-events: none;
+    color: var(--text);
+    --glass-tint: color-mix(in srgb, var(--paper) 70%, transparent);
+    --glass-blur: 20px;
+    padding: 13px 20px; border-radius: 999px; font-size: 0.92rem;
+    transition: opacity 250ms ease, transform 250ms ease;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 860px) {
+    .stage .shell, .care .shell, .story .shell, .order .shell, .promise .shell { grid-template-columns: minmax(0, 1fr); }
+    .stage .shell { min-height: 0; }
+    .viewer-wrap { order: -1; margin: 0 calc(-1 * var(--pad)); }
+    .viewer { height: clamp(320px, 56svh, 500px); }
+    .pill { bottom: 14px; }
+    .info { padding-top: 0; }
+  }
+  @media (max-width: 600px) {
+    .nav-links a { display: none; }
+    .care dl { grid-template-columns: minmax(0, 1fr); gap: 26px; }
+    .chips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .contact div { grid-template-columns: minmax(0, 1fr); gap: 0; }
+    .sheet { max-height: calc(100svh - 12px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .swap { animation: none; }
+    .press:active, .btn:active { transform: none; }
+    .chip-ring { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+  <nav class="nav glass" id="nav" aria-label="Điều hướng chính">
+    <div class="shell">
+      <a class="brand" href="#top">Vườn Lan</a>
+      <div class="nav-links">
+        <a href="#cham-soc">Chăm sóc</a>
+        <a href="#chuyen-vuon">Chuyện của vườn</a>
+        <button class="btn" type="button" data-open-order>Đặt hoa</button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <h1 class="sr-only">Vườn Lan, lan hồ điệp từ nhà vườn</h1>
+
+    <!-- ================= Sân khấu ================= -->
+    <section class="stage" id="stage" aria-label="Sáu giống đang nở">
+      <div class="shell">
+        <div class="info">
+          <div id="vText" aria-live="polite">
+            <h2 class="v-name" id="vName"></h2>
+            <p class="v-latin" id="vLatin"></p>
+            <p class="v-note" id="vNote"></p>
+          </div>
+          <div class="v-row">
+            <span class="v-price" id="vPrice"></span>
+            <button class="btn" type="button" data-open-order>Đặt cây này</button>
+          </div>
+          <p class="hint">Kéo bông hoa sang trái hoặc phải để xem giống khác.</p>
+        </div>
+
+        <div class="viewer-wrap">
+          <div class="viewer" id="viewer" tabindex="0"
+               aria-roledescription="băng chuyền"
+               aria-label="Sáu giống lan. Dùng phím mũi tên trái và phải để đổi giống."></div>
+          <div class="pill glass" id="swatches" role="group" aria-label="Chọn giống"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Lời hứa ================= -->
+    <section class="promise">
+      <div class="shell">
+        <p>Mỗi cành lan được chăm bằng tay trong nhà lưới, sáu đến mười tháng mới nở.
+          <span>Không qua trung gian, không phải hoa công nghiệp.</span></p>
+        <figure class="flow">
+          <div class="flow-demo" id="photo-demo" role="img" aria-label="Minh hoạ: vườn gửi ảnh chậu lan thật qua Zalo trước khi giao, khách thả tim và xác nhận."></div>
+          <figcaption>Trước khi xe đi, vườn chụp đúng chậu lan của bạn gửi qua Zalo. Ưng rồi mới giao.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ================= Chăm sóc ================= -->
+    <section class="care" id="cham-soc">
+      <div class="shell">
+        <div>
+          <h2 class="title">Chăm lan ở nhà không khó.</h2>
+          <p class="sub">Một cây hồ điệp chỉ cần bốn điều. Làm đúng, cây sẽ nở lại mỗi năm.</p>
+          <figure class="flow care-flow">
+            <div class="flow-demo" id="care-demo" role="img" aria-label="Minh hoạ: khách hỏi vườn qua Zalo vì lá vàng, vườn trả lời cách xử lý."></div>
+            <figcaption>Cây có gì lạ, cứ nhắn vườn. Người trồng trả lời, không phải tổng đài.</figcaption>
+          </figure>
+        </div>
+        <dl>
+          <div><dt>Ánh sáng</dt><dd>Sáng gián tiếp, gần cửa sổ, tránh nắng gắt chiếu thẳng vào lá.</dd></div>
+          <div><dt>Tưới nước</dt><dd>Một lần mỗi tuần. Để giá thể khô hẳn giữa hai lần tưới.</dd></div>
+          <div><dt>Độ ẩm</dt><dd>Cây thích độ ẩm 60–70%. Phun sương nhẹ quanh lá vào buổi sáng.</dd></div>
+          <div><dt>Sau khi hoa tàn</dt><dd>Cắt cuống đã tàn và chăm như cũ. Mùa sau cây sẽ ra cành mới.</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ================= Chuyện của vườn ================= -->
+    <section class="story" id="chuyen-vuon">
+      <div class="shell">
+        <img src="images/hero.jpg" alt="Cánh đồng hoa trắng của vườn dưới trời nhiều mây" loading="lazy" width="2000" height="1500" />
+        <div>
+          <h2 class="title">Từ một cây không chịu nở.</h2>
+          <p>Vườn bắt đầu từ một cây hồ điệp được tặng mà mãi không nở. Hoá ra lan không nở vì thiếu kiên nhẫn, chứ không phải vì thiếu phân.</p>
+          <div class="count">2.000+<span>cây đang ra hoa trong vườn hôm nay</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= Đặt hoa ================= -->
+    <section class="order" id="dat-hoa">
+      <div class="shell">
+        <div>
+          <h2 class="title">Gửi một cành lan đến người bạn nghĩ tới.</h2>
+          <button class="btn" type="button" data-open-order>Đặt hoa</button>
+          <dl class="contact">
+            <div><dt>Điện thoại</dt><dd><a href="tel:0900000000">0900 000 000</a></dd></div>
+            <div><dt>Zalo</dt><dd><a href="https://zalo.me/0900000000" target="_blank" rel="noopener">Nhắn Vườn Lan</a></dd></div>
+            <div><dt>Giờ nhận đơn</dt><dd>7:00 đến 18:00, mỗi ngày</dd></div>
+            <div><dt>Giao hàng</dt><dd>Nội thành trong 2 giờ, đi tỉnh 2 đến 3 ngày</dd></div>
+            <div><dt>Địa chỉ</dt><dd>Nhà lưới số 1, Đà Lạt</dd></div>
+          </dl>
+        </div>
+        <figure class="flow">
+          <div class="flow-demo" id="order-demo" role="img" aria-label="Minh hoạ: khách dán đơn vào Zalo, gửi, và Vườn Lan xác nhận giờ giao."></div>
+          <figcaption>
+            Bấm Đặt hoa, đơn được chép sẵn và Zalo của vườn mở ra. Bạn chỉ cần dán và gửi.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="shell">
+      <span>© 2026 Vườn Lan</span>
+      <span>Lan hồ điệp trồng tại Đà Lạt</span>
+    </div>
+  </footer>
+
+  <!-- ================= Tấm đặt hoa ================= -->
+  <div class="scrim" id="scrim" hidden></div>
+  <section class="sheet glass" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" hidden>
+    <div class="sheet-head" id="sheetHead">
+      <div class="grip" aria-hidden="true"></div>
+      <div class="sheet-top">
+        <h2 id="sheetTitle">Đặt hoa</h2>
+        <button class="close" type="button" id="sheetClose">Đóng</button>
+      </div>
+    </div>
+    <form class="sheet-body" id="orderForm">
+      <fieldset>
+        <legend>Giống lan</legend>
+        <div class="chips" id="chips"></div>
+      </fieldset>
+      <div class="field">
+        <label for="f-name">Tên của bạn</label>
+        <input id="f-name" name="name" type="text" autocomplete="name" placeholder="Nguyễn Thị A" required />
+      </div>
+      <div class="field">
+        <label for="f-phone">Số điện thoại</label>
+        <input id="f-phone" name="phone" type="tel" autocomplete="tel" placeholder="09xx xxx xxx" required />
+      </div>
+      <div class="field">
+        <label for="f-note">Lời nhắn trên thiệp, giờ giao</label>
+        <textarea id="f-note" name="note" placeholder="Ví dụ: Chúc mừng khai trương. Giao lúc 9 giờ sáng."></textarea>
+      </div>
+      <button class="btn" type="submit">Gửi đơn qua Zalo</button>
+      <p class="form-note">Zalo sẽ mở ra, nội dung đơn đã được sao chép sẵn. Bạn chỉ cần dán vào khung chat.</p>
+    </form>
+  </section>
+
+  <div class="toast glass" id="toast" role="status" aria-live="polite"></div>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs id="glassDefs"></defs></svg>
+
+<script>
+  /* ---------- Thông tin shop (THAY SỐ/TÊN THẬT) ---------- */
+  const SHOP = { phone: '0900000000', zalo: '0900000000', email: 'vuonlan@example.com' };
+
+  /* ---------- Sáu giống (giá là số tạm, thay giá thật) ----------
+     petal/vein/edge/lip: màu bông. stage/ink/deep: màu cả trang khi xem giống đó. */
+  const V = [
+    { name: 'Bạch Moth', latin: "Phalaenopsis 'White Moth'", note: 'Trắng tinh, nở bền 2 đến 3 tháng.', price: '350.000đ',
+      petal: '#FFFFFF', vein: '#D5DAE3', edge: '#F4F6FA', lip: '#E3A43A', lipDeep: '#A85A1A', stage: '#1E3644', ink: '#EAF1F4', deep: '#1E3644' },
+    { name: 'Hồng Phấn', latin: "Phalaenopsis 'Blush'", note: 'Hồng nhạt, hợp để tặng sinh nhật.', price: '380.000đ',
+      petal: '#F7C6D6', vein: '#D9709A', edge: '#FCE4EC', lip: '#C0396A', lipDeep: '#7E1A42', stage: '#5E2236', ink: '#FBE6EE', deep: '#7E2A4A' },
+    { name: 'Tím Hoàng Hậu', latin: "Phalaenopsis 'Royal Violet'", note: 'Tím đậm, cánh dày, đứng dáng.', price: '450.000đ',
+      petal: '#9C55BD', vein: '#5E2380', edge: '#C48ED8', lip: '#4A1264', lipDeep: '#2A0A3C', stage: '#EDE2F2', ink: '#35144A', deep: '#6B2D8A' },
+    { name: 'Vàng Mật', latin: "Phalaenopsis 'Honey Gold'", note: 'Vàng ấm, lưỡi cam đỏ.', price: '420.000đ',
+      petal: '#F2C94C', vein: '#C3841A', edge: '#F9E39A', lip: '#B0441C', lipDeep: '#6E260C', stage: '#26331F', ink: '#F5EAC7', deep: '#5E4A10' },
+    { name: 'Đốm Báo', latin: "Phalaenopsis 'Harlequin'", note: 'Cánh trắng điểm đốm tím, mỗi bông một khác.', price: '480.000đ',
+      petal: '#FBF4F0', vein: '#E6B6C4', edge: '#FFFFFF', lip: '#9E2F5C', lipDeep: '#5E1434', stage: '#F4D6DC', ink: '#561230', deep: '#9E2F5C', speckled: true },
+    { name: 'Mini Hồ Điệp', latin: "Phalaenopsis 'Mini'", note: 'Bông nhỏ, cây gọn, vừa một góc bàn.', price: '250.000đ',
+      petal: '#E0C1EE', vein: '#A066C2', edge: '#F2E2F9', lip: '#7E3A9C', lipDeep: '#4A1C62', stage: '#2A2148', ink: '#ECE2FA', deep: '#4B3A82', mini: true }
+  ];
+  const N = V.length;
+
+  /* ============================================================
+     Vật lý kiểu Apple: spring theo damping ratio + response,
+     chiếu quán tính, rubber-band. Mọi chuyển động bắt đầu từ
+     giá trị đang hiển thị nên có thể chộp lại giữa chừng.
+     ============================================================ */
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const project = (v, d = 0.998) => (v / 1000) * d / (1 - d);
+  const rubberband = (o, dim, c = 0.55) => (o * dim * c) / (dim + c * Math.abs(o));
+
+  function spring(o) {
+    if (reduced) { o.onUpdate(o.to, 0); o.onComplete && o.onComplete(); return { stop() {} }; }
+    let x = o.from, v = o.velocity || 0, last = performance.now(), raf;
+    const w = 2 * Math.PI / (o.response || 0.4);
+    const k = w * w, c = 2 * (o.dampingRatio ?? 1) * w;
+    function step(now) {
+      const dt = Math.min((now - last) / 1000, 1 / 30);
+      last = now;
+      const n = Math.max(1, Math.ceil(dt / 0.004)), h = dt / n;
+      for (let s = 0; s < n; s++) { v += (-k * (x - o.to) - c * v) * h; x += v * h; }
+      o.onUpdate(x, v);
+      if (Math.abs(x - o.to) < 0.1 && Math.abs(v) < 2) { o.onUpdate(o.to, 0); o.onComplete && o.onComplete(); return; }
+      raf = requestAnimationFrame(step);
+    }
+    raf = requestAnimationFrame(step);
+    return { stop() { cancelAnimationFrame(raf); } };
+  }
+
+  // Vận tốc từ ~100ms cuối; ngón tay dừng lại trước khi thả thì vận tốc = 0.
+  function tracker() {
+    let h = [];
+    return {
+      reset() { h = []; },
+      push(p) { const t = performance.now(); h.push({ p, t }); while (h.length > 2 && t - h[0].t > 100) h.shift(); },
+      velocity() {
+        if (h.length < 2) return 0;
+        const a = h[0], b = h[h.length - 1];
+        if (performance.now() - b.t > 80) return 0;
+        const dt = (b.t - a.t) / 1000;
+        return dt > 0 ? (b.p - a.p) / dt : 0;
+      }
+    };
+  }
+
+  /* ---------- Màu: nội suy liên tục giữa hai giống ---------- */
+  const rgb = (h) => { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; };
+  const mix = (a, b, f) => { const A = rgb(a), B = rgb(b); return 'rgb(' + A.map((x, i) => Math.round(x + (B[i] - x) * f)).join(',') + ')'; };
+  const rootStyle = document.documentElement.style;
+  function paint(t) {
+    t = clamp(t, 0, N - 1);
+    const i = Math.floor(t), j = Math.min(i + 1, N - 1), f = t - i;
+    rootStyle.setProperty('--stage', mix(V[i].stage, V[j].stage, f));
+    rootStyle.setProperty('--ink', mix(V[i].ink, V[j].ink, f));
+    rootStyle.setProperty('--deep', mix(V[i].deep, V[j].deep, f));
+  }
+
+  /* ---------- Vẽ một bông hồ điệp nhìn thẳng ---------- */
+  function bloom(v, i) {
+    const g = 'g' + i;
+    let dots = '';
+    if (v.speckled) {
+      let s = 7;
+      const rnd = () => (s = (s * 9301 + 49297) % 233280) / 233280;
+      for (let k = 0; k < 70; k++) {
+        const a = rnd() * Math.PI * 2, r = 18 + rnd() * 62;
+        const x = Math.cos(a) * r, y = Math.sin(a) * r * 0.9;
+        if (y > -4 && Math.abs(x) < 26) continue;
+        dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (0.9 + rnd() * 2.4).toFixed(1) + '"/>';
+      }
+      dots = '<g fill="' + v.lip + '" opacity="0.75">' + dots + '</g>';
+    }
+    const veins = '<g fill="none" stroke="' + v.vein + '" stroke-width="0.7" opacity="0.5" stroke-linecap="round">' +
+      '<path d="M-6 -4 C -26 -18, -48 -34, -70 -42"/><path d="M-6 0 C -30 -6, -56 -12, -80 -16"/><path d="M-6 3 C -30 6, -54 6, -76 2"/>' +
+      '<path d="M6 -4 C 26 -18, 48 -34, 70 -42"/><path d="M6 0 C 30 -6, 56 -12, 80 -16"/><path d="M6 3 C 30 6, 54 6, 76 2"/>' +
+      '<path d="M0 -10 C -2 -34, -2 -60, 0 -82"/></g>';
+    const sepal = 'M0 -6 C -18 -28, -24 -66, 0 -90 C 24 -66, 18 -28, 0 -6 Z';
+    return '<svg viewBox="-100 -100 200 200" aria-hidden="true"><defs>' +
+        '<radialGradient id="' + g + 'p" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="96">' +
+          '<stop offset="0" stop-color="' + v.vein + '"/><stop offset="0.3" stop-color="' + v.petal + '"/><stop offset="1" stop-color="' + v.edge + '"/>' +
+        '</radialGradient>' +
+        '<linearGradient id="' + g + 'l" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" stop-color="' + v.lipDeep + '"/><stop offset="1" stop-color="' + v.lip + '"/>' +
+        '</linearGradient></defs>' +
+      '<g' + (v.mini ? ' transform="scale(0.8)"' : '') + '>' +
+        '<g fill="url(#' + g + 'p)" stroke="' + v.vein + '" stroke-width="0.6" stroke-opacity="0.6">' +
+          '<path d="' + sepal + '" transform="rotate(128) scale(0.9)"/>' +
+          '<path d="' + sepal + '" transform="rotate(-128) scale(0.9)"/>' +
+          '<path d="' + sepal + '"/>' +
+          '<path d="M-2 -2 C -14 -38, -54 -72, -86 -50 C -106 -24, -88 20, -2 6 Z"/>' +
+          '<path d="M2 -2 C 14 -38, 54 -72, 86 -50 C 106 -24, 88 20, 2 6 Z"/>' +
+        '</g>' + veins + dots +
+        '<g fill="url(#' + g + 'l)">' +
+          '<path d="M-4 4 C -18 -2, -28 8, -24 20 C -20 26, -10 20, -4 12 Z"/>' +
+          '<path d="M4 4 C 18 -2, 28 8, 24 20 C 20 26, 10 20, 4 12 Z"/>' +
+          '<path d="M0 10 C -13 14, -16 34, -10 46 C -5 53, 5 53, 10 46 C 16 34, 13 14, 0 10 Z"/>' +
+        '</g>' +
+        '<path d="M-4 50 C -9 55, -10 60, -6 62 M4 50 C 9 55, 10 60, 6 62" fill="none" stroke="' + v.lip + '" stroke-width="1.3" stroke-linecap="round"/>' +
+        '<ellipse cx="0" cy="18" rx="6" ry="5" fill="#F2C94C"/>' +
+        '<path d="M0 -14 C -7 -12, -7 4, 0 8 C 7 4, 7 -12, 0 -14 Z" fill="' + v.edge + '" stroke="' + v.vein + '" stroke-width="0.6"/>' +
+        '<circle cx="0" cy="-10" r="3" fill="#F3E3B8"/>' +
+      '</g></svg>';
+  }
+
+  /* ---------- Thông tin giống + chấm màu ---------- */
+  const $ = (id) => document.getElementById(id);
+  const swatches = $('swatches');
+  swatches.innerHTML = V.map((v, i) =>
+    '<button class="sw" type="button" data-i="' + i + '" aria-label="' + v.name + '" aria-pressed="false" style="--c:' + v.petal + '"><i></i></button>').join('');
+
+  let shown = -1;
+  function showInfo(i) {
+    if (i === shown) return;
+    shown = i;
+    const v = V[i];
+    $('vName').textContent = v.name;
+    $('vLatin').textContent = v.latin;
+    $('vNote').textContent = v.note;
+    $('vPrice').textContent = v.price;
+    const box = $('vText');
+    box.classList.remove('swap'); void box.offsetWidth; box.classList.add('swap');
+    swatches.querySelectorAll('.sw').forEach((b, k) => b.setAttribute('aria-pressed', String(k === i)));
+  }
+
+  /* ============================================================
+     Băng chuyền hoa: kéo 1:1 → chiếu quán tính → spring
+     nhận vận tốc lúc thả. Chộp lại được giữa chừng.
+     ============================================================ */
+  const carousel = (() => {
+    const viewer = $('viewer');
+    viewer.innerHTML = V.map((v, i) => '<div class="slide" data-i="' + i + '">' + bloom(v, i) + '</div>').join('');
+    const slides = [...viewer.children];
+    const vt = tracker();
+    let x = 0, vel = 0, W = 1, B = 1, idx = 0, anim = null;
+    let start = null, mode = null, x0 = 0, wasMoving = false;
+
+    function layout() {
+      const vw = viewer.clientWidth, vh = viewer.clientHeight;
+      B = Math.min(vw * 0.8, vh * 0.92, 560);
+      W = Math.max(B * 0.95, vw * 0.62);
+      slides.forEach((s) => {
+        s.style.width = B + 'px'; s.style.height = B + 'px';
+        s.style.marginLeft = (-B / 2) + 'px'; s.style.marginTop = (-B / 2) + 'px';
+      });
+    }
+    function render() {
+      slides.forEach((s, i) => {
+        const d = i + x / W, a = Math.min(Math.abs(d), 1.6);
+        s.style.transform = 'translate3d(' + (d * W).toFixed(2) + 'px,0,0) rotate(' + (d * 12).toFixed(2) + 'deg) scale(' + (1 - a * 0.3).toFixed(4) + ')';
+        s.style.opacity = (1 - a * 0.5).toFixed(3);
+        s.style.zIndex = String(10 - Math.round(a * 4));
+      });
+      paint(-x / W);
+      showInfo(clamp(Math.round(-x / W), 0, N - 1));
+    }
+    function setX(nx, nv) { x = nx; vel = nv; render(); }
+    const minX = () => -(N - 1) * W;
+    function rubber(raw) {
+      const dim = viewer.clientWidth;
+      if (raw > 0) return rubberband(raw, dim);
+      if (raw < minX()) return minX() - rubberband(minX() - raw, dim);
+      return raw;
+    }
+    function animateTo(i, velocity, flick) {
+      if (anim) anim.stop();
+      idx = clamp(i, 0, N - 1);
+      anim = spring({
+        from: x, to: -idx * W, velocity,
+        dampingRatio: flick ? 0.8 : 1, response: 0.4,
+        onUpdate: setX, onComplete: () => { anim = null; }
+      });
+    }
+    // Đi tới một giống, giữ nguyên vận tốc đang có (không "đâm vào tường").
+    const goTo = (i) => animateTo(i, vel, false);
+
+    viewer.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      wasMoving = !!anim;
+      if (anim) { anim.stop(); anim = null; }       // chộp lại tại vị trí đang hiển thị
+      start = { x: e.clientX, y: e.clientY, id: e.pointerId };
+      mode = 'pending'; x0 = x;
+      vt.reset(); vt.push(e.clientX);
+    });
+    viewer.addEventListener('pointermove', (e) => {
+      if (!start || e.pointerId !== start.id) return;
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      if (mode === 'pending') {
+        if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy)) {
+          mode = 'drag';
+          viewer.setPointerCapture(e.pointerId);
+          viewer.classList.add('dragging');
+          start.x = e.clientX;                       // bám đúng điểm đã nắm, không giật
+        } else if (Math.abs(dy) > 10) {
+          start = null; mode = null;
+          if (wasMoving) animateTo(Math.round(-x / W), 0, false);
+        }
+        return;
+      }
+      vt.push(e.clientX);
+      setX(rubber(x0 + (e.clientX - start.x)), 0);
+    });
+    function end(e) {
+      if (!start || e.pointerId !== start.id) return;
+      if (mode === 'drag') {
+        viewer.classList.remove('dragging');
+        const v = vt.velocity();
+        const target = Math.round(-(x + project(v)) / W);
+        animateTo(target, v, Math.abs(v) > 300);
+      } else {
+        const s = e.target.closest('.slide');
+        const tapped = s ? +s.dataset.i : null;
+        if (tapped !== null && tapped !== Math.round(-x / W)) goTo(tapped);
+        else if (wasMoving || x !== -idx * W) animateTo(Math.round(-x / W), 0, false);
+      }
+      start = null; mode = null;
+    }
+    viewer.addEventListener('pointerup', end);
+    viewer.addEventListener('pointercancel', end);
+    viewer.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(idx - 1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goTo(idx + 1); }
+    });
+    swatches.addEventListener('click', (e) => {
+      const b = e.target.closest('.sw'); if (b) goTo(+b.dataset.i);
+    });
+    addEventListener('resize', () => { layout(); if (anim) anim.stop(); anim = null; setX(-idx * W, 0); });
+
+    layout(); setX(0, 0);
+    return { goTo, get index() { return clamp(Math.round(-x / W), 0, N - 1); } };
+  })();
+
+  /* ============================================================
+     Tấm đặt hoa: trượt lên từ dưới, kéo đầu tấm để đóng.
+     Thả bằng cú vuốt thì quyết định theo điểm chiếu quán tính.
+     ============================================================ */
+  const sheetCtl = (() => {
+    const sheet = $('sheet'), scrim = $('scrim'), head = $('sheetHead'), chips = $('chips');
+    const vt = tracker();
+    let y = 0, H = 1, anim = null, open = false, lastFocus = null, drag = null;
+
+    chips.innerHTML = V.map((v, i) =>
+      '<label class="chip"><input type="radio" name="variety" value="' + i + '"' + (i === 0 ? ' checked' : '') + ' />' +
+      '<span style="--c:' + v.petal + '">' + v.name + '<small>' + v.price + '</small></span></label>').join('');
+    chips.addEventListener('change', (e) => { carousel.goTo(+e.target.value); placeRing(true); });
+
+    // Khung chọn trượt: đo ô đang chọn rồi dời một khung duy nhất tới đó
+    const ring = document.createElement('i');
+    ring.className = 'chip-ring'; ring.setAttribute('aria-hidden', 'true');
+    chips.appendChild(ring); chips.classList.add('has-ring');
+    function placeRing(animate) {
+      const box = chips.querySelector('input:checked + span');
+      if (!box || !box.offsetWidth) return;
+      ring.classList.toggle('instant', !animate || !ring.classList.contains('on'));
+      ring.style.transform = 'translate(' + box.offsetParent.offsetLeft + 'px,' + box.offsetParent.offsetTop + 'px)';
+      ring.style.width = box.offsetWidth + 'px';
+      ring.style.height = box.offsetHeight + 'px';
+      ring.offsetWidth; // chốt vị trí trước khi bật lại transition
+      ring.classList.add('on'); ring.classList.remove('instant');
+    }
+    addEventListener('resize', () => placeRing(false));
+
+    function setY(ny) {
+      y = ny;
+      sheet.style.transform = 'translate3d(0,' + y.toFixed(2) + 'px,0)';
+      scrim.style.opacity = String(clamp(1 - y / H, 0, 1));
+    }
+    function run(to, velocity, damping, done) {
+      if (anim) anim.stop();
+      anim = spring({ from: y, to, velocity, dampingRatio: damping, response: 0.32,
+        onUpdate: (v) => setY(v), onComplete: () => { anim = null; done && done(); } });
+    }
+    function show(trigger) {
+      lastFocus = trigger || document.activeElement;
+      const pick = chips.querySelector('input[value="' + carousel.index + '"]');
+      if (pick) pick.checked = true;
+      const fresh = sheet.hidden;
+      sheet.hidden = false; scrim.hidden = false;
+      placeRing(!fresh);
+      H = sheet.offsetHeight;
+      if (fresh) setY(H + 16);                            // nếu đang đóng dở thì đi tiếp từ vị trí hiện tại
+      open = true;
+      document.documentElement.style.overflow = 'hidden';
+      run(0, 0, 1);
+      (chips.querySelector('input:checked') || chips.querySelector('input')).focus({ preventScroll: true });
+    }
+    function hide(velocity = 0, flick = false) {
+      open = false;
+      run(H + 16, velocity, flick ? 0.8 : 1, () => {
+        if (open) return;
+        sheet.hidden = true; scrim.hidden = true;
+        document.documentElement.style.overflow = '';
+        lastFocus && lastFocus.focus({ preventScroll: true });
+      });
+    }
+
+    head.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0 || e.target.closest('button')) return;
+      if (anim) { anim.stop(); anim = null; }
+      head.setPointerCapture(e.pointerId);
+      drag = { id: e.pointerId, y: e.clientY, y0: y };
+      vt.reset(); vt.push(e.clientY);
+    });
+    head.addEventListener('pointermove', (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      vt.push(e.clientY);
+      const raw = drag.y0 + (e.clientY - drag.y);
+      setY(raw < 0 ? -rubberband(-raw, H) : raw);   // kéo lên quá mức thì cản dần
+    });
+    function release(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag = null;
+      const v = vt.velocity();
+      if (y + project(v, 0.99) > H * 0.5) hide(v, Math.abs(v) > 300);
+      else { open = true; run(0, v, Math.abs(v) > 300 ? 0.8 : 1); }
+    }
+    head.addEventListener('pointerup', release);
+    head.addEventListener('pointercancel', release);
+
+    scrim.addEventListener('click', () => hide());
+    $('sheetClose').addEventListener('click', () => hide());
+    document.addEventListener('keydown', (e) => {
+      if (!open) return;
+      if (e.key === 'Escape') { e.preventDefault(); hide(); }
+      if (e.key === 'Tab') {
+        const f = [...sheet.querySelectorAll('button, input, textarea')].filter((el) => !el.disabled && el.offsetParent);
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+    document.querySelectorAll('[data-open-order]').forEach((b) => b.addEventListener('click', () => show(b)));
+    return { hide };
+  })();
+
+  /* ============================================================
+     Liquid glass: bản đồ dịch chuyển cho mép kính bo tròn.
+     Mép kính bẻ cong ảnh phía sau như một thấu kính lồi.
+     Chỉ Chromium hỗ trợ backdrop-filter: url(#…), nơi khác giữ kính mờ.
+     ============================================================ */
+  const glassDefs = $('glassDefs');
+  const canRefract = !!(navigator.userAgentData && navigator.userAgentData.brands.some((b) => b.brand === 'Chromium'))
+    && !matchMedia('(prefers-reduced-transparency: reduce)').matches;
+
+  function displacementMap(w, h, r, bezel) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(w, h);
+    const hx = w / 2 - r, hy = h / 2 - r;
+    for (let py = 0; py < h; py++) {
+      for (let px = 0; px < w; px++) {
+        const x = px + 0.5 - w / 2, y = py + 0.5 - h / 2;
+        const qx = Math.abs(x) - hx, qy = Math.abs(y) - hy;
+        let nx, ny, dist;
+        if (qx > 0 && qy > 0) { const l = Math.hypot(qx, qy) || 1; nx = qx / l; ny = qy / l; dist = r - l; }
+        else if (qx > qy) { nx = 1; ny = 0; dist = r - Math.max(qx, 0); }
+        else { nx = 0; ny = 1; dist = r - Math.max(qy, 0); }
+        nx *= Math.sign(x) || 1; ny *= Math.sign(y) || 1;
+        const t = clamp(1 - dist / bezel, 0, 1);
+        const k = t * t * (3 - 2 * t);               // mềm dần về tâm, gắt ở sát mép
+        const o = (py * w + px) * 4;
+        img.data[o] = 128 - nx * k * 127;
+        img.data[o + 1] = 128 - ny * k * 127;
+        img.data[o + 2] = 128;
+        img.data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return c.toDataURL();
+  }
+
+  function liquidGlass(el, opts) {
+    // Vệt sáng theo con trỏ
+    el.addEventListener('pointermove', (e) => {
+      const r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
+      el.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100 - 40).toFixed(1) + '%');
+    });
+    el.addEventListener('pointerleave', () => { el.style.removeProperty('--mx'); el.style.removeProperty('--my'); });
+    if (!canRefract) return;
+    const id = 'lg-' + Math.random().toString(36).slice(2, 8);
+    let last = '';
+    const build = () => {
+      const w = Math.round(el.offsetWidth), h = Math.round(el.offsetHeight);
+      if (!w || !h || w + 'x' + h === last) return;
+      last = w + 'x' + h;
+      const r = Math.min(opts.radius === 'pill' ? h / 2 : opts.radius, h / 2, w / 2);
+      const map = displacementMap(w, h, r, opts.bezel);
+      const old = document.getElementById(id); if (old) old.remove();
+      glassDefs.insertAdjacentHTML('beforeend',
+        '<filter id="' + id + '" x="0" y="0" width="' + w + '" height="' + h + '" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" color-interpolation-filters="sRGB">' +
+          '<feGaussianBlur in="SourceGraphic" stdDeviation="' + opts.blur + '" result="b"/>' +
+          '<feImage href="' + map + '" x="0" y="0" width="' + w + '" height="' + h + '" preserveAspectRatio="none" result="m"/>' +
+          '<feDisplacementMap in="b" in2="m" scale="' + opts.scale + '" xChannelSelector="R" yChannelSelector="G" result="d"/>' +
+          '<feColorMatrix in="d" type="saturate" values="1.7"/>' +
+        '</filter>');
+      el.style.backdropFilter = 'url(#' + id + ')';
+      el.style.webkitBackdropFilter = 'url(#' + id + ')';
+    };
+    new ResizeObserver(build).observe(el);
+  }
+
+  liquidGlass($('nav'), { radius: 'pill', bezel: 20, scale: 34, blur: 2.5 });
+  liquidGlass($('swatches'), { radius: 'pill', bezel: 20, scale: 52, blur: 0.6 });
+
+  /* ---------- Nav đổi tông khi trôi khỏi sân khấu màu ---------- */
+  const navEl = $('nav'), stageEl = $('stage');
+  const tone = () => navEl.classList.toggle('on-paper', stageEl.getBoundingClientRect().bottom < navEl.offsetHeight + 10);
+  addEventListener('scroll', tone, { passive: true });
+  tone();
+
+  /* ---------- Toast ---------- */
+  let toastTimer;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 3600);
+  }
+
+  /* ---------- Gửi đơn qua Zalo ---------- */
+  $('orderForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = V[+document.querySelector('input[name="variety"]:checked').value];
+    const note = $('f-note').value.trim();
+    const message =
+      'Xin chào Vườn Lan,\n\nTôi là ' + $('f-name').value.trim() + ' (SĐT: ' + $('f-phone').value.trim() + ').\n' +
+      'Tôi muốn đặt: ' + v.name + ' (' + v.price + ').\n' +
+      (note ? 'Lời nhắn: ' + note + '\n' : '') +
+      '\nVui lòng xác nhận đơn giúp tôi. Cảm ơn!';
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(message).catch(() => {});
+    window.open('https://zalo.me/' + SHOP.zalo, '_blank', 'noopener');
+    sheetCtl.hide();
+    toast('Đã mở Zalo. Dán nội dung đơn đã sao chép vào khung chat để gửi.');
+  });
+</script>
+</body>
+</html>

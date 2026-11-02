@@ -1,0 +1,16 @@
+.vl.vl-photo {
+  /* A photo fills its bubble, a hair of white around it, as Zalo shows images */
+  .vp-photo > .ss-bubble {
+    padding: 3px;
+    border-radius: 14px;
+  }
+  .vp-photo__img {
+    display: block;
+    width: 200px;
+    height: auto;
+    border-radius: 11px;
+  }
+  .ss-stage[data-layout='compact'] .vp-photo__img {
+    width: 180px;
+  }
+}

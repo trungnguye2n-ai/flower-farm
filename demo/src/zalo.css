@@ -1,0 +1,233 @@
+/* Zalo-style chat for Vườn Lan. Nested under .vl. Inside the phone 1px = 1pt. */
+.vl {
+  --vl-blue: #0068ff;
+  --vl-out: #e5efff;
+  --vl-ink: #081c36;
+  --vl-meta: #7589a3;
+  --vl-shop: color-mix(in srgb, var(--deep, #1e3644) 80%, #000);
+  --vl-ui: cubic-bezier(0.3, 0.75, 0.1, 1);
+
+  .ss-stage {
+    overflow: hidden;
+    /* The page's own color, set by the variety being viewed */
+    background: color-mix(in srgb, var(--deep, #1e3644) 14%, #f3f4f6);
+    border-radius: 24px;
+  }
+
+  /* Every demo pins the phone 30px from the left and bottom (16px compact) */
+  .vl-phone {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+  }
+  .ss-stage[data-layout='compact'] .vl-phone {
+    bottom: 16px;
+    left: 16px;
+  }
+
+  .ss-phone__content {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Zalo's chat ground: a pale gray-blue */
+  .ss-phone__screen {
+    background: #e2e9f1;
+  }
+
+  .vl-thread {
+    --ss-me: var(--vl-out);
+    --ss-me-text: var(--vl-ink);
+    --ss-them: #fff;
+    --ss-them-text: var(--vl-ink);
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    gap: 6px;
+    padding: 64px 12px 10px;
+  }
+
+  .ss-bubble {
+    max-width: 78%;
+    padding: 9px 12px 8px;
+    border-radius: 14px;
+    font-size: 15px;
+    line-height: 20px;
+    letter-spacing: -0.01em;
+    box-shadow: 0 0.5px 1px rgba(8, 28, 54, 0.12);
+  }
+
+  /* Zalo bubbles have no tails */
+  .ss-bubble__tail {
+    display: none;
+  }
+
+  .vl-avatar {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* Time on its own line under the message, as Zalo writes it */
+  .vl-time {
+    display: block;
+    margin-top: 4px;
+    color: var(--vl-meta);
+    font-size: 12px;
+    line-height: 14px;
+    letter-spacing: 0;
+  }
+
+  .ss-stage[data-layout='compact'] .vl-time { font-size: 13px; line-height: 15px; }
+  .ss-stage[data-layout='compact'] .vl-date { font-size: 13px; }
+
+  .vl-date {
+    align-self: center;
+    margin: 4px 0 8px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    background: rgba(8, 28, 54, 0.2);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 16px;
+  }
+
+  .ss-receipt {
+    color: var(--vl-meta);
+  }
+
+  /* ---- Composer: a white bar across the foot ---- */
+  .vl-compose {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px 42px;
+    background: #fff;
+    box-shadow: 0 -0.5px 0 rgba(8, 28, 54, 0.12);
+    transition: z-index 0s 0.3s;
+  }
+  /* Over the thread while the callout is open */
+  .vl-compose[data-menu] {
+    z-index: 3;
+    transition: none;
+  }
+
+  .vl-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    color: #7589a3;
+  }
+
+  .vl-field {
+    position: relative;
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 0;
+    height: 36px;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .vl-field__text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--vl-ink);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0;
+  }
+  .vl-field__text[data-show] {
+    opacity: 1;
+  }
+
+  .vl-caret {
+    display: inline-block;
+    width: 2px;
+    height: 19px;
+    margin-left: 1px;
+    border-radius: 1px;
+    background: var(--vl-blue);
+    vertical-align: -4px;
+  }
+
+  .vl-field__ph {
+    position: absolute;
+    left: 0;
+    color: #a0adbd;
+    pointer-events: none;
+    transition: opacity 0.2s ease 0.3s;
+  }
+  .vl-field__ph[data-hide] {
+    opacity: 0;
+    transition: opacity 0.1s ease;
+  }
+
+  /* The iOS edit callout above the field */
+  .vl-menu {
+    --ss-popover-bg: #fff;
+    --ss-popover-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 8px 24px -6px rgba(0, 0, 0, 0.28);
+    position: absolute;
+    bottom: calc(100% - 2px);
+    left: 46px;
+    padding: 0;
+    border-radius: 10px;
+    z-index: 3;
+
+    > span {
+      display: block;
+      padding: 9px 16px;
+      color: #000;
+      font-size: 15px;
+      line-height: 18px;
+    }
+    > span[data-pressed] {
+      background: #e5e5ea;
+      border-radius: 10px;
+    }
+  }
+
+  /* Image and send share one place: the image glyph gives way to send */
+  .vl-action {
+    position: relative;
+    display: grid;
+    flex: none;
+    width: 32px;
+    height: 32px;
+
+    > * {
+      grid-area: 1 / 1;
+    }
+  }
+
+  .vl-image {
+    transition: opacity 0.18s ease, transform 0.3s var(--vl-ui);
+  }
+  .vl-image[data-off] {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  .vl-send {
+    display: grid;
+    place-items: center;
+    color: var(--vl-blue);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: opacity 0.18s ease, transform 0.3s var(--vl-ui), scale 0.12s ease;
+  }
+  .vl-send[data-on] {
+    opacity: 1;
+    transform: none;
+  }
+  .vl-send[data-pressed] {
+    scale: 0.88;
+  }
+}
