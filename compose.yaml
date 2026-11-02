@@ -77,6 +77,30 @@ services:
         condition: service_completed_successfully
     restart: unless-stopped
 
+  # Daily pg_dump + image mirror into the backups volume (03:00 Asia/Ho_Chi_Minh)
+  backup:
+    build: ./infra/backup
+    image: ${IMAGE_REPO:-vuon-hoa}-backup:${IMAGE_TAG:-local}
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:?}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?}
+      PGDATABASE: ${POSTGRES_DB:?}
+      MC_HOST_store: http://${S3_ACCESS_KEY}:${S3_SECRET_KEY}@minio:9000
+      S3_BUCKET: ${S3_BUCKET:?}
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+      BACKUP_REMOTE_HOST: ${BACKUP_REMOTE_HOST:-}
+      BACKUP_REMOTE_PATH: ${BACKUP_REMOTE_PATH:-}
+    volumes:
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   pgdata:
   miniodata:
+  backups:
