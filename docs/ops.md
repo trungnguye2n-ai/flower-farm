@@ -63,7 +63,8 @@ Cần: VPS Ubuntu/Debian, **tối thiểu 2 GB RAM**, một tên miền.
 2. Lấy code: `git clone <địa chỉ repo> vuon-hoa && cd vuon-hoa`
 3. Tạo `.env` từ `.env.example`, đặt mật khẩu dài, ngẫu nhiên cho `POSTGRES_PASSWORD`
    và `S3_SECRET_KEY` (`openssl rand -hex 24`), sửa:
-   - `DATABASE_URL`, `DATABASE_URL_TEST`: đổi mật khẩu cho khớp (host không quan trọng, compose tự trỏ vào `db`)
+   - `DATABASE_URL`: đổi mật khẩu cho khớp (host không quan trọng, compose tự trỏ vào `db`)
+   - xoá dòng `DATABASE_URL_TEST`: VPS không chạy test
    - `DOMAIN=tenmien.vn`
    - thêm `IMAGE_REPO=ghcr.io/<tài khoản github>/vuon-hoa` và `IMAGE_TAG=latest`
 4. Trỏ bản ghi DNS `A` của tên miền về IP của VPS.

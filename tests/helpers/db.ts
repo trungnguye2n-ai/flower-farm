@@ -1,9 +1,11 @@
 import { afterAll } from 'vitest'
 import { createDb, type Db } from '@/db/client'
 import { runMigrations } from '@/db/migrate'
+import { assertTestDatabase } from './guard'
 
 const url = process.env.DATABASE_URL_TEST
 if (!url) throw new Error('DATABASE_URL_TEST is required for database tests')
+assertTestDatabase(url)
 
 const conn = createDb(url)
 afterAll(() => conn.sql.end())
