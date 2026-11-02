@@ -27,6 +27,8 @@ Cổng trên máy: app `3000`, Postgres `55432`, MinIO `59100` (giao diện qu�
 Các cổng này chỉ mở cho chính máy của bạn (127.0.0.1).
 
 Chạy test: `npm test` (cần `dc up -d db minio minio-init` trước).
+Kiểm tra hạ tầng: `infra/tests/app-env.sh`, `infra/tests/backup-health.sh`,
+`infra/tests/restore.sh` (cần cả stack đang chạy).
 
 Hai bản code trên cùng một máy dùng chung dữ liệu (cùng tên dự án `vuon-hoa`).
 Muốn tách riêng, đặt `COMPOSE_PROJECT_NAME=ten-khac` trước các lệnh `dc`.
@@ -134,18 +136,23 @@ Khi container khởi động mà chưa có bản nào trong 26 giờ, nó sao l�
 ```sh
 dcp stop app
 dcp run --rm backup restore.sh /backups/db/vuonhoa-20261102-0300.dump --images --yes
-dcp start app
+dcp up -d          # migrate chạy lại (đưa cấu trúc lên bản mới nhất), rồi app khởi động
 ```
 
-Bỏ `--images` nếu chỉ cần khôi phục database. Thiếu `--yes` thì lệnh từ chối chạy.
+- Khôi phục là **tất cả hoặc không gì cả**: file sao lưu hỏng hoặc lỗi giữa chừng thì
+  database giữ nguyên như trước khi chạy lệnh.
+- Database trở về **đúng như lúc sao lưu**, kể cả các bảng mà bản cập nhật sau đó
+  đã thêm; `dcp up -d` sẽ chạy lại migration để thêm chúng.
+- Bỏ `--images` nếu chỉ cần khôi phục database. Thiếu `--yes` thì lệnh từ chối chạy.
 
-Thử khôi phục mà không đụng dữ liệu thật: tạo database phụ rồi khôi phục vào đó.
+Thử khôi phục mà không đụng dữ liệu thật (trên máy cá nhân có sẵn
+`infra/tests/restore.sh` làm đúng việc này):
 
 ```sh
-dcp exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c 'create database restore_check'
+dcp exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "create database restore_check"'
 dcp run --rm -e PGDATABASE=restore_check backup restore.sh /backups/db/<file>.dump --yes
-dcp exec db psql -U "$POSTGRES_USER" -d restore_check -c 'select count(*) from products'
-dcp exec db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c 'drop database restore_check'
+dcp exec db sh -c 'psql -U "$POSTGRES_USER" -d restore_check -c "select count(*) from products"'
+dcp exec db sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "drop database restore_check"'
 ```
 
 ## 8. Khi có sự cố
