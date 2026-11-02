@@ -1,0 +1,30 @@
+# VPS: images come from the registry (IMAGE_REPO, IMAGE_TAG), Caddy serves HTTPS.
+services:
+  app:
+    environment:
+      S3_PUBLIC_URL: https://${DOMAIN:?}
+      APP_URL: https://${DOMAIN:?}
+    mem_limit: 512m
+  migrate:
+    mem_limit: 256m
+  db:
+    mem_limit: 512m
+  minio:
+    mem_limit: 256m
+  caddy:
+    image: caddy:2
+    ports: ["80:80", "443:443", "443:443/udp"]
+    environment:
+      DOMAIN: ${DOMAIN:?}
+      S3_BUCKET: ${S3_BUCKET:?}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+    mem_limit: 64m
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

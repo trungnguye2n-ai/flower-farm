@@ -6,3 +6,5 @@ services:
       - ./infra/postgres/init-test-db.sql:/docker-entrypoint-initdb.d/10-test-db.sql:ro
   minio:
     ports: ["127.0.0.1:59100:9000", "127.0.0.1:59101:9001"]
+  app:
+    ports: ["127.0.0.1:3000:3000"]

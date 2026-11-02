@@ -1,0 +1,14 @@
+# HTTPS certificates are obtained automatically for {$DOMAIN}.
+{$DOMAIN} {
+	encode zstd gzip
+
+	# Product photos: only the bucket's public/ prefix is reachable from outside
+	@images path /{$S3_BUCKET}/public/*
+	handle @images {
+		reverse_proxy minio:9000
+	}
+
+	handle {
+		reverse_proxy app:3000
+	}
+}

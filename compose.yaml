@@ -1,6 +1,11 @@
 # Shared services. Combine with compose.dev.yaml (local) or compose.prod.yaml (VPS).
 name: vuon-hoa
 
+# Inside the compose network the app reaches db and minio by service name
+x-app-env: &app-env
+  DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+  S3_ENDPOINT: http://minio:9000
+
 x-minio-image: &minio-image cgr.dev/chainguard/minio@sha256:0a01100085e30fb08d2f39e39c9f5c9d83a95707f220b007d813b690cd41622d
 
 services:
@@ -48,6 +53,29 @@ services:
       minio:
         condition: service_healthy
     restart: "no"
+
+  # Applies pending migrations, then exits; app waits for it
+  migrate:
+    build: { context: ., target: tools }
+    image: ${IMAGE_REPO:-vuon-hoa}-tools:${IMAGE_TAG:-local}
+    env_file: .env
+    environment: *app-env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build: { context: ., target: runner }
+    image: ${IMAGE_REPO:-vuon-hoa}:${IMAGE_TAG:-local}
+    env_file: .env
+    environment: *app-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      minio-init:
+        condition: service_completed_successfully
+    restart: unless-stopped
 
 volumes:
   pgdata:
