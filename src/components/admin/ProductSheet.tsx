@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { deleteProductAction, restoreProductAction, saveProductAction } from '@/app/admin/(app)/actions'
 import type { FieldErrors } from '@/admin/result'
 import { Field, FieldError } from './Field'
+import { ImageManager } from './ImageManager'
 import { SaveButton, useSave } from './SaveButton'
 import { Sheet } from './Sheet'
 import { useToast } from './Toast'
@@ -126,6 +127,7 @@ export function ProductSheet({
         </>
       }
     >
+      <ImageManager product={product} />
       <form id="product-form" className="form" onSubmit={submit} noValidate>
         <Field label="Tên" value={form.name} onChange={(e) => set('name', e.target.value)} error={errors.name} placeholder="Ví dụ: Đỏ nhung" />
         <Field

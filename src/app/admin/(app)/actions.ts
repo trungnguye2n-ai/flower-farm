@@ -20,7 +20,7 @@ import {
   type ProductInput,
 } from '@/admin/catalog'
 import { ok, type Result } from '@/admin/result'
-import { removeImageFiles, s3Storage } from '@/images/service'
+import { deleteProductImage, removeImageFiles, reorderImages, s3Storage, setPrimaryImage } from '@/images/service'
 
 function refresh<T>(result: Result<T>): Result<T> {
   if (result.ok) {
@@ -77,4 +77,19 @@ export async function deleteCategoryAction(id: string): Promise<Result<null>> {
   if (!result.ok) return result
   await removeImageFiles(s3Storage, result.data.storageKeys)
   return refresh(ok(null))
+}
+
+export async function setPrimaryImageAction(imageId: string): Promise<Result<null>> {
+  await requireAdmin()
+  return refresh(await setPrimaryImage(getDb(), imageId))
+}
+
+export async function deleteImageAction(imageId: string): Promise<Result<null>> {
+  await requireAdmin()
+  return refresh(await deleteProductImage(getDb(), s3Storage, imageId))
+}
+
+export async function reorderImagesAction(productId: string, ids: string[]): Promise<Result<null>> {
+  await requireAdmin()
+  return refresh(await reorderImages(getDb(), productId, ids))
 }
