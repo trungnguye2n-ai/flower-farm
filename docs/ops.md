@@ -61,8 +61,10 @@ Gõ mật khẩu mới hai lần. Mọi phiên đăng nhập cũ của tài kho�
 
 - Địa chỉ: `/admin` (máy cá nhân: http://localhost:3000/admin; VPS: `https://tenmien.vn/admin`).
   Chưa đăng nhập thì tự chuyển sang trang đăng nhập.
-- Đăng nhập sai 5 lần với cùng email (hoặc 20 lần từ cùng một mạng) trong 15 phút thì bị khoá
-  15 phút. Chờ hết thời gian là đăng nhập lại được; không cần làm gì trên máy chủ.
+- Đăng nhập sai 5 lần cho cùng một email từ cùng một mạng (hoặc 20 lần từ một mạng, hoặc 50 lần
+  cho một email từ khắp nơi) trong 15 phút thì bị khoá 15 phút. Người lạ đoán sai mật khẩu chỉ
+  khoá chính họ: chủ vườn đăng nhập từ mạng khác (4G, wifi nhà) vẫn vào được. Chờ hết thời gian
+  là đăng nhập lại được; không cần làm gì trên máy chủ.
 - **Sản phẩm:** chạm một dòng để sửa. Giá gõ kiểu nào cũng được: `150000`, `150.000`, `150k`.
   Kéo biểu tượng ⠿ để đổi thứ tự. Công tắc ở mỗi dòng bật/tắt còn hàng cho mọi kiểu bán.
 - **Ảnh:** "Chụp / chọn ảnh" trong tấm sửa sản phẩm. Nhận JPEG, PNG, WebP và ảnh iPhone (HEIC),

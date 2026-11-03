@@ -40,11 +40,23 @@ describe('login', () => {
     expect(r.ok).toBe(true)
   })
 
-  test('blocks the email after 5 failures in 15 minutes', async () => {
-    for (let i = 0; i < 5; i++) await login(db, { email: 'an@vuon.vn', password: 'sai-mat-khau-1', ip: `2.2.2.${i}` })
-    expect(await login(db, { email: 'an@vuon.vn', password: PASSWORD, ip: '3.3.3.3' })).toEqual({ ok: false, error: LIMITED })
-    await testSql`update login_attempts set created_at = now() - interval '16 minutes'`
+  test('5 failures for an email from one IP block that IP, not the owner elsewhere', async () => {
+    for (let i = 0; i < 5; i++) await login(db, { email: 'an@vuon.vn', password: 'sai-mat-khau-1', ip: '2.2.2.2' })
+    expect(await login(db, { email: 'an@vuon.vn', password: PASSWORD, ip: '2.2.2.2' })).toEqual({ ok: false, error: LIMITED })
     expect((await login(db, { email: 'an@vuon.vn', password: PASSWORD, ip: '3.3.3.3' })).ok).toBe(true)
+    await testSql`update login_attempts set created_at = now() - interval '16 minutes'`
+    expect((await login(db, { email: 'an@vuon.vn', password: PASSWORD, ip: '2.2.2.2' })).ok).toBe(true)
+  })
+
+  test('50 failures for an email from many IPs block it everywhere', async () => {
+    for (let i = 0; i < 50; i++) await login(db, { email: 'an@vuon.vn', password: 'sai-mat-khau-1', ip: `6.6.${Math.floor(i / 4)}.${i % 4}` })
+    expect(await login(db, { email: 'an@vuon.vn', password: PASSWORD, ip: '7.7.7.7' })).toEqual({ ok: false, error: LIMITED })
+  })
+
+  test('a burst of parallel wrong logins checks at most 5 passwords', async () => {
+    await Promise.all(Array.from({ length: 12 }, () => login(db, { email: 'an@vuon.vn', password: 'sai-mat-khau-1', ip: '8.8.8.8' })))
+    const [{ n }] = await testSql`select count(*)::int as n from login_attempts`
+    expect(n).toBeLessThanOrEqual(5)
   })
 
   test('blocks an IP after 20 failures across emails', async () => {

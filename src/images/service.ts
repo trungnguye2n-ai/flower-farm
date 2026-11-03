@@ -81,19 +81,33 @@ export async function addProductImage(
 
 class MissingProduct extends Error {}
 
+type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
+
+/** Serialise photo changes per product (uploads take the same lock). */
+async function lockProduct(tx: Tx, productId: string) {
+  await tx.select({ id: products.id }).from(products).where(eq(products.id, productId)).for('update')
+}
+
+/** If the product has photos but none is primary, make the first one primary. */
+async function ensurePrimary(tx: Tx, productId: string) {
+  const rows = await tx
+    .select({ id: productImages.id, isPrimary: productImages.isPrimary })
+    .from(productImages)
+    .where(eq(productImages.productId, productId))
+    .orderBy(asc(productImages.sortOrder), asc(productImages.createdAt))
+  if (rows.length && !rows.some((r) => r.isPrimary)) {
+    await tx.update(productImages).set({ isPrimary: true }).where(eq(productImages.id, rows[0].id))
+  }
+}
+
 export async function deleteProductImage(db: Db, storage: Storage, imageId: string): Promise<Result<null>> {
   const removed = await db.transaction(async (tx) => {
+    const [image] = await tx.select({ productId: productImages.productId }).from(productImages).where(eq(productImages.id, imageId))
+    if (!image) return null
+    await lockProduct(tx, image.productId)
     const [row] = await tx.delete(productImages).where(eq(productImages.id, imageId)).returning()
     if (!row) return null
-    if (row.isPrimary) {
-      const [next] = await tx
-        .select({ id: productImages.id })
-        .from(productImages)
-        .where(eq(productImages.productId, row.productId))
-        .orderBy(asc(productImages.sortOrder), asc(productImages.createdAt))
-        .limit(1)
-      if (next) await tx.update(productImages).set({ isPrimary: true }).where(eq(productImages.id, next.id))
-    }
+    await ensurePrimary(tx, row.productId)
     return row
   })
   if (!removed) return fail('Không tìm thấy ảnh')
@@ -103,6 +117,9 @@ export async function deleteProductImage(db: Db, storage: Storage, imageId: stri
 
 export async function setPrimaryImage(db: Db, imageId: string): Promise<Result<null>> {
   return db.transaction(async (tx) => {
+    const [found] = await tx.select({ productId: productImages.productId }).from(productImages).where(eq(productImages.id, imageId))
+    if (!found) return fail('Không tìm thấy ảnh')
+    await lockProduct(tx, found.productId)
     const [image] = await tx.select().from(productImages).where(eq(productImages.id, imageId))
     if (!image) return fail('Không tìm thấy ảnh')
     await tx

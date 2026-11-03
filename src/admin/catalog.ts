@@ -136,7 +136,10 @@ function validateProduct(input: ProductInput): { errors: FieldErrors; prices: nu
   return { errors, prices }
 }
 
-export async function saveProduct(db: Db, input: ProductInput): Promise<Result<{ id: string; slug: string }>> {
+export type SavedProduct = { id: string; slug: string; variants: { id: string; name: string }[] }
+
+/** Saves the product and its variants; returns the variants' ids in form order so the form can keep them. */
+export async function saveProduct(db: Db, input: ProductInput): Promise<Result<SavedProduct>> {
   const { errors, prices } = validateProduct(input)
   if (Object.keys(errors).length) return fail(errors)
 
@@ -181,12 +184,18 @@ export async function saveProduct(db: Db, input: ProductInput): Promise<Result<{
       id = created.id
     }
 
+    const saved: SavedProduct['variants'] = []
     for (const [i, v] of input.variants.entries()) {
       const values = { name: v.name.trim(), price: prices[i], inStock: v.inStock, sortOrder: i }
-      if (v.id) await tx.update(productVariants).set(values).where(eq(productVariants.id, v.id))
-      else await tx.insert(productVariants).values({ ...values, productId: id })
+      if (v.id) {
+        await tx.update(productVariants).set(values).where(eq(productVariants.id, v.id))
+        saved.push({ id: v.id, name: values.name })
+      } else {
+        const [row] = await tx.insert(productVariants).values({ ...values, productId: id }).returning({ id: productVariants.id })
+        saved.push({ id: row.id, name: values.name })
+      }
     }
-    return ok({ id, slug })
+    return ok({ id, slug, variants: saved })
   })
 }
 
@@ -216,7 +225,8 @@ export async function restoreProduct(db: Db, id: string): Promise<Result<{ slug:
     const slug = await freeProductSlug(tx, p.slug, p.id)
     await tx
       .update(products)
-      .set({ deletedAt: null, slug, sortOrder: await nextProductOrder(tx, p.categoryId) })
+      // Soft delete never changes sort_order, so undo puts it back where it was
+      .set({ deletedAt: null, slug })
       .where(eq(products.id, id))
     return ok({ slug })
   })

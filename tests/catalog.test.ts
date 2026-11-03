@@ -58,7 +58,7 @@ describe('listCatalog', () => {
 describe('saveProduct', () => {
   test('creates a product with variants, a fresh slug, last in its category', async () => {
     const r = await saveProduct(db, product())
-    expect(r).toEqual({ ok: true, data: { id: expect.any(String), slug: 'bach-thuy-tien-do-nhung-2' } })
+    expect(r).toMatchObject({ ok: true, data: { id: expect.any(String), slug: 'bach-thuy-tien-do-nhung-2' } })
     const cats = await listCatalog(db)
     const last = cats[0].products.at(-1)!
     expect(last.slug).toBe('bach-thuy-tien-do-nhung-2')
@@ -108,7 +108,7 @@ describe('saveProduct', () => {
         { name: 'Khay 6 củ', price: '350.000', inStock: false },
       ],
     })
-    expect(r).toEqual({ ok: true, data: { id: p.id, slug: 'bach-thuy-tien-do-nhung' } })
+    expect(r).toMatchObject({ ok: true, data: { id: p.id, slug: 'bach-thuy-tien-do-nhung' } })
     const after = (await findProduct('bach-thuy-tien-do-nhung'))!
     expect(after.name).toBe('Đỏ nhung mới')
     expect(after.variants.map((v) => [v.name, v.price, v.inStock])).toEqual([
@@ -119,6 +119,20 @@ describe('saveProduct', () => {
     expect(dropped.deletedAt).not.toBeNull()
     const [item] = await testSql`select variant_id, unit_price from order_items`
     expect(item).toEqual({ variant_id: drop.id, unit_price: 250000 })
+  })
+
+  test('saving twice with the returned variant ids keeps the same variants', async () => {
+    const first = await saveProduct(db, product({ variants: [{ name: 'Củ trần', price: '60k', inStock: true }, { name: 'Chậu 20cm', price: '120k', inStock: true }] }))
+    if (!first.ok) throw new Error('save failed')
+    expect(first.data.variants.map((v) => v.name)).toEqual(['Củ trần', 'Chậu 20cm'])
+    const again = await saveProduct(db, {
+      ...product({ id: first.data.id, shortDescription: 'Sửa lỗi chính tả' }),
+      variants: first.data.variants.map((v, i) => ({ id: v.id, name: v.name, price: i ? '120k' : '60k', inStock: true })),
+    })
+    if (!again.ok) throw new Error('second save failed')
+    expect(again.data.variants.map((v) => v.id)).toEqual(first.data.variants.map((v) => v.id))
+    const rows = await db.select().from(productVariants).where(eq(productVariants.productId, first.data.id))
+    expect(rows).toHaveLength(2)
   })
 
   test('a variant id from another product is refused', async () => {
@@ -147,6 +161,16 @@ describe('stock, delete, restore', () => {
     expect(deleted.flatMap((c) => c.products).map((x) => x.slug)).toEqual(['muoi-gio-my'])
     expect(await restoreProduct(db, p.id)).toEqual({ ok: true, data: { slug: 'muoi-gio-my' } })
     expect(await findProduct('muoi-gio-my')).toBeDefined()
+  })
+
+  test('undo puts the product back where it was', async () => {
+    const [c] = await listCatalog(db)
+    const extra = await saveProduct(db, product({ name: 'Thứ ba' }))
+    if (!extra.ok) throw new Error('save failed')
+    const before = (await listCatalog(db))[0].products.map((p) => p.id)
+    await softDeleteProduct(db, c.products[0].id)
+    await restoreProduct(db, c.products[0].id)
+    expect((await listCatalog(db))[0].products.map((p) => p.id)).toEqual(before)
   })
 
   test('restore re-slugs when a live product took the slug', async () => {

@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { deleteProductAction, restoreProductAction, saveProductAction } from '@/app/admin/(app)/actions'
 import type { FieldErrors } from '@/admin/result'
+import type { SavedProduct } from '@/admin/catalog'
 import { Field, FieldError } from './Field'
 import { ImageManager } from './ImageManager'
 import { SaveButton, useSave } from './SaveButton'
@@ -34,7 +35,7 @@ export function ProductSheet({
   onCreated: (id: string) => void
 }) {
   const toast = useToast()
-  const save = useSave<{ id: string; slug: string }>()
+  const save = useSave<SavedProduct>()
   const [errors, setErrors] = useState<FieldErrors>({})
   const [confirming, setConfirming] = useState(false)
   const [form, setForm] = useState(() => ({
@@ -69,7 +70,12 @@ export function ProductSheet({
     )
     setErrors(r.ok ? {} : (r.fieldErrors ?? {}))
     if (!r.ok && r.error) toast(r.error, { tone: 'error' })
-    if (r.ok && !product) onCreated(r.data.id)
+    if (r.ok) {
+      // New rows now exist: keep their ids so the next save updates them instead of replacing them
+      const ids = r.data.variants
+      setForm((f) => ({ ...f, variants: f.variants.map((v, i) => ({ ...v, id: ids[i]?.id ?? v.id })) }))
+      if (!product) onCreated(r.data.id)
+    }
   }
 
   async function remove() {

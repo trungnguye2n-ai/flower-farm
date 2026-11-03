@@ -133,6 +133,30 @@ describe('product images', () => {
     expect(deleted).toHaveLength(IMAGE_WIDTHS.length)
   })
 
+  test('any delete leaves exactly one primary when photos remain', async () => {
+    const a = await add()
+    const b = await add()
+    const c = await add()
+    if (!a.ok || !b.ok || !c.ok) throw new Error('upload failed')
+    // A product somehow without a primary (e.g. after a race) heals on the next delete
+    await db.update(productImages).set({ isPrimary: false })
+    const noop: Storage = { put: async () => {}, del: async () => {} }
+    await deleteProductImage(db, noop, c.data.id)
+    const rows = await db.select().from(productImages)
+    expect(rows.filter((r) => r.isPrimary).map((r) => r.id)).toEqual([a.data.id])
+  })
+
+  test('deleting two photos at once still leaves the third primary', async () => {
+    const a = await add()
+    const b = await add()
+    const c = await add()
+    if (!a.ok || !b.ok || !c.ok) throw new Error('upload failed')
+    const noop: Storage = { put: async () => {}, del: async () => {} }
+    await Promise.all([deleteProductImage(db, noop, a.data.id), deleteProductImage(db, noop, b.data.id)])
+    const rows = await db.select().from(productImages)
+    expect(rows.map((r) => [r.id, r.isPrimary])).toEqual([[c.data.id, true]])
+  })
+
   test('setPrimaryImage moves the flag; reorderImages sets the order', async () => {
     const a = await add()
     const b = await add()

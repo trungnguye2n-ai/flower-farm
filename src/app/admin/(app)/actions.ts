@@ -18,6 +18,7 @@ import {
   softDeleteProduct,
   type CategoryInput,
   type ProductInput,
+  type SavedProduct,
 } from '@/admin/catalog'
 import { ok, type Result } from '@/admin/result'
 import { deleteProductImage, removeImageFiles, reorderImages, s3Storage, setPrimaryImage } from '@/images/service'
@@ -39,7 +40,7 @@ export async function logoutAction(): Promise<void> {
   redirect('/admin/login')
 }
 
-export async function saveProductAction(input: ProductInput): Promise<Result<{ id: string; slug: string }>> {
+export async function saveProductAction(input: ProductInput): Promise<Result<SavedProduct>> {
   await requireAdmin()
   return refresh(await saveProduct(getDb(), input))
 }
