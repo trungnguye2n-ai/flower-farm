@@ -4,6 +4,7 @@ import { requireAdmin } from '@/auth/guard'
 import { countNewOrders } from '@/admin/orders'
 import { getDb } from '@/db/client'
 import { AdminNav } from '@/components/admin/AdminNav'
+import { Toasts } from '@/components/admin/Toast'
 import { logoutAction } from './actions'
 import '@/components/admin/admin.css'
 
@@ -26,7 +27,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         </form>
         </div>
       </header>
-      {children}
+      <Toasts>{children}</Toasts>
       <AdminNav place="bottom" newOrders={newOrders} />
     </div>
   )
