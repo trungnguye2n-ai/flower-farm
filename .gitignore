@@ -9,3 +9,6 @@ coverage/
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+e2e/.fixtures/
+test-results/
+playwright-report/

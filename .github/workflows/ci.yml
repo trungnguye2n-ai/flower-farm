@@ -29,6 +29,14 @@ jobs:
       - run: npm test
       - run: infra/tests/app-env.sh
       - run: npm run build
+      # Admin end to end against a production build and the test database
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/
 
   publish:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'

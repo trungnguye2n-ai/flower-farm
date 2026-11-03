@@ -57,6 +57,23 @@ dcp run --rm migrate npm run -s admin -- reset-password --email ban@vuon.vn
 
 Gõ mật khẩu mới hai lần. Mọi phiên đăng nhập cũ của tài khoản đó bị đăng xuất.
 
+## 3b. Trang admin
+
+- Địa chỉ: `/admin` (máy cá nhân: http://localhost:3000/admin; VPS: `https://tenmien.vn/admin`).
+  Chưa đăng nhập thì tự chuyển sang trang đăng nhập.
+- Đăng nhập sai 5 lần với cùng email (hoặc 20 lần từ cùng một mạng) trong 15 phút thì bị khoá
+  15 phút. Chờ hết thời gian là đăng nhập lại được; không cần làm gì trên máy chủ.
+- **Sản phẩm:** chạm một dòng để sửa. Giá gõ kiểu nào cũng được: `150000`, `150.000`, `150k`.
+  Kéo biểu tượng ⠿ để đổi thứ tự. Công tắc ở mỗi dòng bật/tắt còn hàng cho mọi kiểu bán.
+- **Ảnh:** "Chụp / chọn ảnh" trong tấm sửa sản phẩm. Nhận JPEG, PNG, WebP và ảnh iPhone (HEIC),
+  tối đa 15 MB mỗi ảnh. Ảnh được xoay đúng chiều, xoá vị trí GPS và thu nhỏ trước khi lưu.
+  Chạm vào ảnh để đặt làm ảnh chính hoặc xoá.
+- **Xoá nhầm sản phẩm:** bấm "Hoàn tác" ngay trên thông báo, hoặc sau đó vào mục "Đã xoá"
+  ở đầu trang Sản phẩm và bấm "Khôi phục".
+- **Đơn hàng:** chạm vào đơn để xem chi tiết; chạm vào nhãn trạng thái để đổi.
+- Kiểm tra tự động cả luồng admin trên trình duyệt: `npm run e2e` (dùng database test,
+  cần `dc up -d db minio minio-init` trước).
+
 ## 4. Lần đầu đưa lên VPS
 
 Cần: VPS Ubuntu/Debian, **tối thiểu 2 GB RAM**, một tên miền.

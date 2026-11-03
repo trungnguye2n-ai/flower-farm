@@ -13,7 +13,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "db:seed": "tsx src/db/seed.ts",
-    "admin": "tsx src/cli/admin.ts"
+    "admin": "tsx src/cli/admin.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1161.0",
