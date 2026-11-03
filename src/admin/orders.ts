@@ -73,6 +73,4 @@ export async function countNewOrders(db: Db): Promise<number> {
   return row.n
 }
 
-const dial = (phone: string) => phone.replace(/[^\d+]/g, '')
-export const zaloLink = (phone: string) => `https://zalo.me/${dial(phone).replace(/^\+/, '')}`
-export const telLink = (phone: string) => `tel:${dial(phone)}`
+export { telLink, zaloLink } from './order-links'
