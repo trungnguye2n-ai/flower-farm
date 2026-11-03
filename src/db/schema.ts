@@ -190,3 +190,16 @@ export const orderItems = pgTable(
     check('order_items_quantity_positive', sql`${t.quantity} > 0`),
   ],
 )
+
+// Every login attempt, for rate limiting. Rows older than a day are purged on login.
+export const loginAttempts = pgTable(
+  'login_attempts',
+  {
+    id: id(),
+    email: text('email').notNull(),
+    ip: text('ip').notNull(),
+    succeeded: boolean('succeeded').notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('login_attempts_email_created').on(t.email, t.createdAt), index('login_attempts_ip_created').on(t.ip, t.createdAt)],
+)
