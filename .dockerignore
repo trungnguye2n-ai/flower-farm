@@ -10,3 +10,7 @@ coverage
 .env.*
 !.env.example
 *.log
+e2e
+playwright.config.ts
+test-results
+playwright-report

@@ -6,11 +6,13 @@ import { getDb } from '@/db/client'
 import { LoginForm } from './LoginForm'
 import '@/components/admin/admin.css'
 
+export const dynamic = 'force-dynamic'
 export const metadata = { title: 'Đăng nhập · Vườn hoa', robots: { index: false } }
 
 export default async function LoginPage() {
   // Already signed in: go straight to the admin
-  if (await currentAdmin(getDb(), (await cookies()).get(SESSION_COOKIE)?.value)) redirect('/admin')
+  const token = (await cookies()).get(SESSION_COOKIE)?.value
+  if (token && (await currentAdmin(getDb(), token))) redirect('/admin')
   return (
     <main className="login">
       <LoginForm />

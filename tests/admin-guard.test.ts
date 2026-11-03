@@ -46,3 +46,15 @@ describe('admin guard', () => {
     expect(missing).toEqual([])
   })
 })
+
+describe('build without secrets', () => {
+  // `next build` runs in Docker and CI without DATABASE_URL: a page that touches
+  // the database must be rendered per request, never prerendered at build time.
+  test('every page that uses the database is force-dynamic', () => {
+    const missing = globSync('src/app/**/page.tsx').filter((f) => {
+      const src = readFileSync(f, 'utf8')
+      return src.includes('getDb(') && !src.includes("export const dynamic = 'force-dynamic'")
+    })
+    expect(missing).toEqual([])
+  })
+})
